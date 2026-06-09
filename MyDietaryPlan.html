@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#ffffff">
+    <title>三餐日历 - 抖音视频记录</title>
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --text-secondary: #6c757d;
+            --border: #e0e4e8;
+            --primary: #ff6b6b;
+            --morning: #ffa94d;
+            --lunch: #ff6b6b;
+            --dinner: #845ef7;
+            --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --radius-xs: 5px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #eef1f5;
+            color: var(--text);
+            min-height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+            padding-bottom: var(--safe-bottom);
+            /* 禁止下拉刷新 */
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* ========== 顶部导航栏 ========== */
+        .app-header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.92);
+            gap: 8px;
+            flex-wrap: nowrap;
+        }
+        .app-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.3px;
+            flex-shrink: 0;
+        }
+        .app-logo .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #ff6b6b, #ffa94d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #fff;
+        }
+        .month-nav {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex: 1;
+            justify-content: center;
+            min-width: 0;
+        }
+        .month-nav button {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1.5px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .month-nav button:active {
+            transform: scale(0.9);
+            background: #e9ecf0;
+        }
+        .month-nav .current-month {
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-align: center;
+            letter-spacing: 0.2px;
+            color: var(--text);
+            white-space: nowrap;
+            min-width: 90px;
+        }
+        .btn-today {
+            padding: 6px 12px;
+            border-radius: 16px;
+            border: 1.5px solid var(--primary);
+            background: #fff;
+            color: var(--primary);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: var(--transition);
+            letter-spacing: 0.3px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .btn-today:active {
+            background: #fff5f5;
+            transform: scale(0.95);
+        }
+
+        /* ========== 日历主体 ========== */
+        .calendar-container {
+            max-width: 100%;
+            margin: 8px auto;
+            padding: 0 4px;
+        }
+        .calendar-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: #fafbfc;
+            border-bottom: 1px solid var(--border);
+            padding: 8px 0;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.3px;
+        }
+        .weekdays .weekend {
+            color: #e07b7b;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: var(--border);
+        }
+        .day-cell {
+            background: #fff;
+            min-height: 100px;
+            padding: 3px 2px 4px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .day-cell:active {
+            background: #f5f8ff;
+        }
+        .day-cell.other-month {
+            background: #f9fafb;
+            opacity: 0.4;
+        }
+        .day-cell.today {
+            background: #fffdf7;
+            box-shadow: inset 0 0 0 2px #ffa94d;
+            z-index: 2;
+            border-radius: 2px;
+        }
+        .day-cell.selected {
+            box-shadow: inset 0 0 0 2.5px #4dabf7;
+            z-index: 3;
+            border-radius: 2px;
+            background: #f8fbff;
+        }
+        .day-number {
+            font-weight: 700;
+            font-size: 0.7rem;
+            color: var(--text);
+            margin-bottom: 2px;
+            padding: 0 1px;
+            letter-spacing: -0.2px;
+            flex-shrink: 0;
+            text-align: center;
+        }
+        .day-cell.today .day-number {
+            color: #e67a22;
+            font-weight: 800;
+        }
+        .day-cell.other-month .day-number {
+            color: #bcc3cd;
+        }
+
+        /* 早中晚分区 */
+        .meal-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            min-height: 0;
+        }
+        .meal-row {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            min-height: 24px;
+            padding: 1px 2px;
+            border-radius: 3px;
+            background: #fafbfc;
+            position: relative;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+        .meal-row.drag-over {
+            background: #fff0e6 !important;
+            box-shadow: inset 0 0 0 2px #ffa94d;
+        }
+        .meal-label {
+            font-size: 0.55rem;
+            font-weight: 700;
+            width: 14px;
+            text-align: center;
+            flex-shrink: 0;
+            letter-spacing: 0.3px;
+            border-radius: 3px;
+            padding: 1px 0;
+            line-height: 1.2;
+        }
+        .meal-label.morning {
+            color: #d4782f;
+            background: #fff4e8;
+        }
+        .meal-label.lunch {
+            color: #c92a2a;
+            background: #ffe8e8;
+        }
+        .meal-label.dinner {
+            color: #5f3dc4;
+            background: #f3efff;
+        }
+        .meal-videos {
+            display: flex;
+            gap: 2px;
+            flex: 1;
+            overflow-x: auto;
+            overflow-y: hidden;
+            align-items: center;
+            min-width: 0;
+            padding: 1px 0;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        .meal-videos::-webkit-scrollbar {
+            height: 2px;
+        }
+        .meal-videos::-webkit-scrollbar-thumb {
+            background: #d0d5db;
+            border-radius: 10px;
+        }
+        .meal-videos::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        /* 视频缩略图 */
+        .video-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            overflow: hidden;
+            flex-shrink: 0;
+            cursor: pointer;
+            position: relative;
+            border: 1.5px solid transparent;
+            transition: var(--transition);
+            background: #e9ecf1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .video-thumb:active {
+            transform: scale(0.9);
+            border-color: #4dabf7;
+        }
+        .video-thumb img,
+        .video-thumb video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+        .video-thumb .douyin-badge {
+            position: absolute;
+            bottom: 1px;
+            right: 1px;
+            width: 10px;
+            height: 10px;
+            background: #000;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 6px;
+            color: #fff;
+            font-weight: 900;
+            opacity: 0.8;
+        }
+        .video-thumb.dragging {
+            opacity: 0.3;
+            transform: scale(0.85);
+            border-style: dashed;
+            border-color: #ff6b6b;
+        }
+
+        /* 添加按钮 */
+        .btn-add-video {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 1.5px dashed #d0d5db;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #b0b8c2;
+            flex-shrink: 0;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-add-video:active {
+            border-color: #4dabf7;
+            color: #4dabf7;
+            background: #f0f7ff;
+            transform: scale(0.9);
+        }
+        .btn-note {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 0.55rem;
+            flex-shrink: 0;
+            color: #bcc3cd;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-note:active {
+            color: #4dabf7;
+            transform: scale(0.9);
+        }
+        .btn-note.has-note {
+            color: #ffa94d;
+            background: #fff8f0;
+        }
+
+        /* ========== 拖拽克隆元素 ========== */
+        .touch-drag-clone {
+            position: fixed;
+            z-index: 1500;
+            pointer-events: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            border: 2px solid #ff6b6b;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+            opacity: 0.9;
+            transform: scale(1.15);
+            transition: none;
+            overflow: hidden;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .touch-drag-clone img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* ========== 模态弹窗 ========== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .modal-content {
+            background: #fff;
+            border-radius: var(--radius) var(--radius) 0 0;
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+            padding-bottom: var(--safe-bottom);
+        }
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 5;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+        .modal-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .modal-close {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background: #f1f3f5;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .modal-close:active {
+            background: #e9ecf0;
+            transform: scale(0.9);
+        }
+        .modal-body {
+            padding: 16px;
+        }
+        .modal-body video {
+            width: 100%;
+            max-height: 50vh;
+            border-radius: var(--radius-sm);
+            background: #000;
+            outline: none;
+        }
+        .modal-body .douyin-message {
+            text-align: center;
+            padding: 20px 16px;
+            color: var(--text-secondary);
+            background: #fafbfc;
+            border-radius: var(--radius-sm);
+            margin-bottom: 12px;
+        }
+        .modal-body .douyin-message .icon-big {
+            font-size: 2.5rem;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .modal-body .btn-open-douyin {
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px 20px;
+            background: #000;
+            color: #fff;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            cursor: pointer;
+            text-align: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .modal-body .btn-open-douyin:active {
+            background: #333;
+            transform: scale(0.97);
+        }
+        .modal-body .douyin-link-display {
+            word-break: break-all;
+            background: #fff;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            user-select: all;
+            -webkit-user-select: all;
+        }
+        .modal-body .note-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            margin-top: 8px;
+            resize: vertical;
+            font-family: inherit;
+            transition: var(--transition);
+        }
+        .modal-body .note-input:focus {
+            outline: none;
+            border-color: #4dabf7;
+            box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.1);
+        }
+
+        /* ========== 上传弹窗 ========== */
+        .upload-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .upload-option {
+            padding: 16px;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-sm);
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: #fafbfc;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .upload-option:active {
+            border-color: #4dabf7;
+            background: #f5f9ff;
+            transform: scale(0.98);
+        }
+        .upload-option .icon-big {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .upload-option p {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+        .upload-option span {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+        .douyin-url-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            margin-top: 8px;
+            transition: var(--transition);
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+        }
+        .douyin-url-input:focus {
+            outline: none;
+            border-color: #4dabf7;
+            box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.1);
+        }
+        .btn-primary {
+            display: block;
+            width: 100%;
+            padding: 12px 20px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            letter-spacing: 0.3px;
+            margin-top: 8px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-primary:active {
+            background: #e55a5a;
+            transform: scale(0.97);
+        }
+        .btn-secondary {
+            display: block;
+            width: 100%;
+            padding: 10px 18px;
+            background: #fff;
+            color: var(--text);
+            border: 1.5px solid var(--border);
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: var(--transition);
+            margin-top: 6px;
+            text-align: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-secondary:active {
+            background: #f5f6f8;
+            transform: scale(0.97);
+        }
+        .btn-danger {
+            display: block;
+            width: 100%;
+            padding: 10px 14px;
+            background: #fff;
+            color: #e03131;
+            border: 1.5px solid #e03131;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: var(--transition);
+            margin-top: 10px;
+            text-align: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-danger:active {
+            background: #fff5f5;
+            transform: scale(0.97);
+        }
+        .btn-copy {
+            display: block;
+            width: 100%;
+            padding: 10px 14px;
+            background: #fff;
+            color: #4dabf7;
+            border: 1.5px solid #4dabf7;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: var(--transition);
+            margin-top: 6px;
+            text-align: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-copy:active {
+            background: #f0f7ff;
+            transform: scale(0.97);
+        }
+
+        /* ========== Toast提示 ========== */
+        .toast {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2c3e50;
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            z-index: 2000;
+            animation: toastIn 0.3s ease, toastOut 0.3s ease 2.2s forwards;
+            pointer-events: none;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            max-width: 90vw;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        @keyframes toastOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-10px);
+            }
+        }
+
+        /* ========== 横屏平板适配 ========== */
+        @media (min-width: 768px) {
+            .calendar-container {
+                max-width: 900px;
+                margin: 16px auto;
+                padding: 0 12px;
+            }
+            .day-cell {
+                min-height: 130px;
+                padding: 6px 5px 8px;
+            }
+            .day-number {
+                font-size: 0.85rem;
+            }
+            .meal-row {
+                min-height: 32px;
+                gap: 3px;
+            }
+            .meal-label {
+                font-size: 0.65rem;
+                width: 18px;
+            }
+            .video-thumb {
+                width: 30px;
+                height: 30px;
+            }
+            .btn-add-video {
+                width: 26px;
+                height: 26px;
+                font-size: 0.9rem;
+            }
+            .btn-note {
+                width: 20px;
+                height: 20px;
+                font-size: 0.65rem;
+            }
+            .modal-content {
+                border-radius: var(--radius);
+                margin: 20px;
+                max-height: 80vh;
+                width: 500px;
+            }
+            .upload-options {
+                flex-direction: row;
+            }
+            .upload-option {
+                flex: 1;
+            }
+            .btn-primary,
+            .btn-secondary,
+            .btn-danger,
+            .btn-copy {
+                display: inline-block;
+                width: auto;
+            }
+            .modal-body .btn-open-douyin {
+                display: inline-block;
+                width: auto;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .calendar-container {
+                max-width: 1200px;
+            }
+            .day-cell {
+                min-height: 160px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========== 顶部导航 ========== -->
+    <header class="app-header">
+        <div class="app-logo">
+            <div class="icon">🍽️</div>
+            <span>三餐日历</span>
+        </div>
+        <div class="month-nav">
+            <button id="btnPrevMonth" title="上个月">◀</button>
+            <span class="current-month" id="currentMonthLabel">2026年6月</span>
+            <button id="btnNextMonth" title="下个月">▶</button>
+        </div>
+        <button class="btn-today" id="btnToday">📅 今天</button>
+    </header>
+
+    <!-- ========== 日历主体 ========== -->
+    <div class="calendar-container">
+        <div class="calendar-card">
+            <div class="weekdays" id="weekdaysRow">
+                <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span>
+                <span class="weekend">六</span><span class="weekend">日</span>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+    </div>
+
+    <!-- ========== 视频播放弹窗 ========== -->
+    <div class="modal-overlay" id="playerModal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="playerTitle">视频播放</h3>
+                <button class="modal-close" id="btnClosePlayer">✕</button>
+            </div>
+            <div class="modal-body" id="playerBody"></div>
+        </div>
+    </div>
+
+    <!-- ========== 上传弹窗 ========== -->
+    <div class="modal-overlay" id="uploadModal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="uploadTitle">添加视频</h3>
+                <button class="modal-close" id="btnCloseUpload">✕</button>
+            </div>
+            <div class="modal-body" id="uploadBody"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== 常量 ====================
+            const MEAL_TYPES = ['morning', 'lunch', 'dinner'];
+            const MEAL_LABELS = { morning: '早', lunch: '中', dinner: '晚' };
+            const DB_NAME = 'MealCalendarDB';
+            const DB_VERSION = 3;
+            const STORE_NAME = 'videos';
+            const THUMBNAIL_SIZE = 120;
+
+            // ==================== 状态 ====================
+            let currentYear, currentMonth;
+            let selectedDate = null;
+            const today = new Date();
+            const todayStr = formatDate(today.getFullYear(), today.getMonth(), today.getDate());
+
+            // 拖拽状态
+            let dragInfo = null;
+            let longPressTimer = null;
+            let longPressActive = false;
+            let touchCloneEl = null;
+            let touchStartPos = null;
+            let touchCurrentTarget = null;
+            let isTouchDragging = false;
+
+            // ==================== IndexedDB ====================
+            function openDB() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                            store.createIndex('dateMeal', ['date', 'mealType'], { unique: false });
+                            store.createIndex('date', 'date', { unique: false });
+                        }
+                    };
+                    request.onsuccess = (e) => resolve(e.target.result);
+                    request.onerror = (e) => reject(e.target.error);
+                });
+            }
+
+            function dbAdd(db, record) {
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    const request = store.add(record);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            function dbPut(db, record) {
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    const request = store.put(record);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            function dbGetByDateMeal(db, date, mealType) {
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readonly');
+                    const store = tx.objectStore(STORE_NAME);
+                    const index = store.index('dateMeal');
+                    const range = IDBKeyRange.only([date, mealType]);
+                    const results = [];
+                    index.openCursor(range).onsuccess = (e) => {
+                        const cursor = e.target.result;
+                        if (cursor) {
+                            results.push(cursor.value);
+                            cursor.continue();
+                        } else {
+                            results.sort((a, b) => (a.order || 0) - (b.order || 0));
+                            resolve(results);
+                        }
+                    };
+                });
+            }
+
+            function dbGet(db, id) {
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readonly');
+                    const store = tx.objectStore(STORE_NAME);
+                    const request = store.get(id);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            function dbDelete(db, id) {
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    const request = store.delete(id);
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            // ==================== 工具函数 ====================
+            function formatDate(year, month, day) {
+                const m = String(month + 1).padStart(2, '0');
+                const d = String(day).padStart(2, '0');
+                return `${year}-${m}-${d}`;
+            }
+
+            function generateId() {
+                return 'vid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            function getDaysInMonth(year, month) {
+                return new Date(year, month + 1, 0).getDate();
+            }
+
+            function getFirstDayOfMonth(year, month) {
+                const day = new Date(year, month, 1).getDay();
+                return day === 0 ? 6 : day - 1;
+            }
+
+            function showToast(msg) {
+                const existing = document.querySelector('.toast');
+                if (existing) existing.remove();
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = msg;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2600);
+            }
+
+            function parseDouyinShareText(text) {
+                const urlMatch = text.match(/https?:\/\/[^\s]+/i);
+                return urlMatch ? urlMatch[0] : text.trim();
+            }
+
+            // ==================== 缩略图缓存 ====================
+            const thumbnailURLCache = new Map();
+
+            function getCachedThumbnailURL(record) {
+                if (!record.thumbnailBlob) return null;
+                if (thumbnailURLCache.has(record.id)) {
+                    return thumbnailURLCache.get(record.id);
+                }
+                const url = URL.createObjectURL(record.thumbnailBlob);
+                thumbnailURLCache.set(record.id, url);
+                return url;
+            }
+
+            function revokeThumbnailURL(recordId) {
+                if (thumbnailURLCache.has(recordId)) {
+                    URL.revokeObjectURL(thumbnailURLCache.get(recordId));
+                    thumbnailURLCache.delete(recordId);
+                }
+            }
+
+            // ==================== 渲染日历 ====================
+            async function renderCalendar() {
+                const grid = document.getElementById('calendarGrid');
+                const label = document.getElementById('currentMonthLabel');
+                label.textContent = `${currentYear}年${currentMonth + 1}月`;
+
+                const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+                const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
+                const daysInPrevMonth = getDaysInMonth(currentYear, currentMonth - 1 < 0 ? 11 : currentMonth - 1);
+                const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+
+                const db = await openDB();
+                const monthStart = formatDate(currentYear, currentMonth, 1);
+                const monthEnd = formatDate(currentYear, currentMonth, daysInMonth);
+                const allMonthData = {};
+
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const index = store.index('date');
+                const allResults = await new Promise((resolve) => {
+                    const results = [];
+                    index.openCursor().onsuccess = (e) => {
+                        const cursor = e.target.result;
+                        if (cursor) {
+                            if (cursor.value.date >= monthStart && cursor.value.date <= monthEnd) {
+                                results.push(cursor.value);
+                            }
+                            cursor.continue();
+                        } else {
+                            resolve(results);
+                        }
+                    };
+                });
+
+                for (const rec of allResults) {
+                    if (!allMonthData[rec.date]) allMonthData[rec.date] = { morning: [], lunch: [],
+                    dinner: [] };
+                    if (allMonthData[rec.date][rec.mealType]) {
+                        allMonthData[rec.date][rec.mealType].push(rec);
+                    }
+                }
+                for (const date in allMonthData) {
+                    for (const meal of MEAL_TYPES) {
+                        allMonthData[date][meal].sort((a, b) => (a.order || 0) - (b.order || 0));
+                    }
+                }
+
+                grid.innerHTML = '';
+                for (let i = 0; i < totalCells; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'day-cell';
+                    let dateStr, dayNumber, isOtherMonth = false;
+
+                    if (i < firstDay) {
+                        const d = daysInPrevMonth - firstDay + i + 1;
+                        const ym = currentMonth === 0 ? { y: currentYear - 1, m: 11 } : { y: currentYear, m: currentMonth -
+                                1 };
+                        dateStr = formatDate(ym.y, ym.m, d);
+                        dayNumber = d;
+                        isOtherMonth = true;
+                    } else if (i - firstDay >= daysInMonth) {
+                        const d = i - firstDay - daysInMonth + 1;
+                        const ym = currentMonth === 11 ? { y: currentYear + 1, m: 0 } : { y: currentYear, m: currentMonth +
+                                1 };
+                        dateStr = formatDate(ym.y, ym.m, d);
+                        dayNumber = d;
+                        isOtherMonth = true;
+                    } else {
+                        const d = i - firstDay + 1;
+                        dateStr = formatDate(currentYear, currentMonth, d);
+                        dayNumber = d;
+                    }
+
+                    if (isOtherMonth) cell.classList.add('other-month');
+                    if (dateStr === todayStr) cell.classList.add('today');
+                    if (dateStr === selectedDate) cell.classList.add('selected');
+                    cell.dataset.date = dateStr;
+
+                    const dayNumberEl = document.createElement('div');
+                    dayNumberEl.className = 'day-number';
+                    dayNumberEl.textContent = dayNumber;
+                    cell.appendChild(dayNumberEl);
+
+                    const mealSections = document.createElement('div');
+                    mealSections.className = 'meal-sections';
+                    const dayData = allMonthData[dateStr] || { morning: [], lunch: [], dinner: [] };
+
+                    for (const meal of MEAL_TYPES) {
+                        const mealRow = document.createElement('div');
+                        mealRow.className = 'meal-row';
+                        mealRow.dataset.date = dateStr;
+                        mealRow.dataset.meal = meal;
+
+                        const mealLabel = document.createElement('span');
+                        mealLabel.className = `meal-label ${meal}`;
+                        mealLabel.textContent = MEAL_LABELS[meal];
+                        mealRow.appendChild(mealLabel);
+
+                        const videosContainer = document.createElement('div');
+                        videosContainer.className = 'meal-videos';
+                        videosContainer.dataset.date = dateStr;
+                        videosContainer.dataset.meal = meal;
+
+                        const videos = dayData[meal] || [];
+                        for (const rec of videos) {
+                            const thumb = createVideoThumbElement(rec, dateStr, meal);
+                            videosContainer.appendChild(thumb);
+                        }
+
+                        const addBtn = document.createElement('button');
+                        addBtn.className = 'btn-add-video';
+                        addBtn.textContent = '+';
+                        addBtn.title = `添加${MEAL_LABELS[meal]}餐视频`;
+                        addBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            openUploadModal(dateStr, meal);
+                        });
+                        videosContainer.appendChild(addBtn);
+                        mealRow.appendChild(videosContainer);
+
+                        const noteBtn = document.createElement('button');
+                        noteBtn.className = 'btn-note';
+                        noteBtn.textContent = '📝';
+                        noteBtn.title = '设置备注';
+                        const hasNote = videos.some(v => v.note && v.note.trim());
+                        if (hasNote) noteBtn.classList.add('has-note');
+                        noteBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            openNoteModal(dateStr, meal);
+                        });
+                        mealRow.appendChild(noteBtn);
+
+                        // 拖拽事件 - 分类容器
+                        mealRow.addEventListener('dragover', (e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'move';
+                            mealRow.classList.add('drag-over');
+                        });
+                        mealRow.addEventListener('dragleave', (e) => {
+                            if (!mealRow.contains(e.relatedTarget)) {
+                                mealRow.classList.remove('drag-over');
+                            }
+                        });
+                        mealRow.addEventListener('drop', async (e) => {
+                            e.preventDefault();
+                            mealRow.classList.remove('drag-over');
+                            await handleDrop(e, dateStr, meal, videosContainer);
+                        });
+
+                        mealSections.appendChild(mealRow);
+                    }
+
+                    cell.appendChild(mealSections);
+                    cell.addEventListener('click', (e) => {
+                        if (isTouchDragging) return;
+                        if (e.target.closest('.video-thumb') || e.target.closest('button') || e.target
+                            .closest('.btn-note')) {
+                            return;
+                        }
+                        selectedDate = dateStr;
+                        renderCalendar();
+                    });
+                    grid.appendChild(cell);
+                }
+            }
+
+            function createVideoThumbElement(record, dateStr, meal) {
+                const thumb = document.createElement('div');
+                thumb.className = 'video-thumb';
+                thumb.dataset.videoId = record.id;
+                thumb.dataset.date = dateStr;
+                thumb.dataset.meal = meal;
+                thumb.draggable = true;
+                thumb.title = record.note || (record.type === 'douyin' ? '抖音视频 - 点击播放' : '本地视频');
+
+                if (record.type === 'douyin') {
+                    const img = document.createElement('img');
+                    img.src =
+                        'data:image/svg+xml,' + encodeURIComponent(
+                            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect fill="#000" width="48" height="48" rx="8"/><text x="24" y="32" text-anchor="middle" fill="#fff" font-size="22" font-weight="bold">♪</text></svg>'
+                            );
+                    img.alt = '抖音';
+                    thumb.appendChild(img);
+                    const badge = document.createElement('span');
+                    badge.className = 'douyin-badge';
+                    badge.textContent = '抖';
+                    thumb.appendChild(badge);
+                } else if (record.thumbnailBlob) {
+                    const img = document.createElement('img');
+                    img.src = getCachedThumbnailURL(record);
+                    img.alt = '视频缩略图';
+                    img.loading = 'lazy';
+                    thumb.appendChild(img);
+                } else {
+                    const iconSpan = document.createElement('span');
+                    iconSpan.textContent = '🎬';
+                    iconSpan.style.fontSize = '14px';
+                    thumb.appendChild(iconSpan);
+                }
+
+                // 点击播放
+                thumb.addEventListener('click', (e) => {
+                    if (isTouchDragging) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        return;
+                    }
+                    e.stopPropagation();
+                    openPlayerModal(record);
+                });
+
+                // 桌面端拖拽
+                thumb.addEventListener('dragstart', (e) => {
+                    dragInfo = { videoId: record.id, sourceDate: dateStr, sourceMeal: meal, videoElement: thumb };
+                    thumb.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', record.id);
+                });
+                thumb.addEventListener('dragend', () => {
+                    thumb.classList.remove('dragging');
+                    document.querySelectorAll('.meal-row').forEach(mr => mr.classList.remove('drag-over'));
+                    dragInfo = null;
+                });
+
+                // 移动端长按拖拽
+                setupTouchDrag(thumb, record, dateStr, meal);
+
+                return thumb;
+            }
+
+            function setupTouchDrag(thumb, record, dateStr, meal) {
+                let hasMoved = false;
+
+                thumb.addEventListener('touchstart', (e) => {
+                    hasMoved = false;
+                    isTouchDragging = false;
+                    touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                    longPressActive = false;
+
+                    if (longPressTimer) clearTimeout(longPressTimer);
+                    longPressTimer = setTimeout(() => {
+                        longPressActive = true;
+                        isTouchDragging = true;
+                        dragInfo = { videoId: record.id, sourceDate: dateStr, sourceMeal: meal,
+                            videoElement: thumb };
+                        thumb.classList.add('dragging');
+
+                        // 创建拖拽克隆
+                        touchCloneEl = document.createElement('div');
+                        touchCloneEl.className = 'touch-drag-clone';
+                        const cloneContent = thumb.querySelector('img') ? thumb.querySelector('img').cloneNode(
+                            true) : thumb.cloneNode(true);
+                        if (cloneContent.tagName === 'DIV') {
+                            cloneContent.style.width = '100%';
+                            cloneContent.style.height = '100%';
+                            cloneContent.style.display = 'flex';
+                            cloneContent.style.alignItems = 'center';
+                            cloneContent.style.justifyContent = 'center';
+                        }
+                        touchCloneEl.appendChild(cloneContent);
+                        const touch = e.touches[0];
+                        touchCloneEl.style.left = (touch.clientX - 20) + 'px';
+                        touchCloneEl.style.top = (touch.clientY - 20) + 'px';
+                        document.body.appendChild(touchCloneEl);
+
+                        if (navigator.vibrate) navigator.vibrate(15);
+                    }, 500);
+                }, { passive: false });
+
+                thumb.addEventListener('touchmove', (e) => {
+                    if (!longPressActive) {
+                        const dx = Math.abs(e.touches[0].clientX - (touchStartPos?.x || 0));
+                        const dy = Math.abs(e.touches[0].clientY - (touchStartPos?.y || 0));
+                        if (dx > 5 || dy > 5) {
+                            hasMoved = true;
+                            if (longPressTimer) clearTimeout(longPressTimer);
+                            longPressTimer = null;
+                        }
+                    }
+                    if (longPressActive && touchCloneEl) {
+                        e.preventDefault();
+                        const touch = e.touches[0];
+                        touchCloneEl.style.left = (touch.clientX - 20) + 'px';
+                        touchCloneEl.style.top = (touch.clientY - 20) + 'px';
+                        document.querySelectorAll('.meal-row').forEach(mr => mr.classList.remove('drag-over'));
+                        const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+                        if (elUnder) {
+                            const targetRow = elUnder.closest('.meal-row');
+                            if (targetRow) {
+                                targetRow.classList.add('drag-over');
+                                touchCurrentTarget = targetRow;
+                            }
+                        }
+                    }
+                }, { passive: false });
+
+                thumb.addEventListener('touchend', async (e) => {
+                    if (longPressTimer) clearTimeout(longPressTimer);
+                    longPressTimer = null;
+
+                    if (longPressActive && touchCloneEl && dragInfo) {
+                        const touch = e.changedTouches[0];
+                        const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+                        let targetRow = elUnder ? elUnder.closest('.meal-row') : null;
+                        if (!targetRow && touchCurrentTarget) targetRow = touchCurrentTarget;
+
+                        if (targetRow) {
+                            const targetDate = targetRow.dataset.date;
+                            const targetMeal = targetRow.dataset.meal;
+                            const targetVideosContainer = targetRow.querySelector('.meal-videos');
+                            if (targetVideosContainer && targetDate && targetMeal) {
+                                await processDropAction(
+                                    dragInfo.videoId, dragInfo.sourceDate, dragInfo.sourceMeal,
+                                    targetDate, targetMeal, touch.clientX, targetVideosContainer
+                                );
+                            }
+                        }
+
+                        cleanupTouchDrag();
+                        await renderCalendar();
+                    } else if (!hasMoved && !longPressActive) {
+                        // 短按未移动 - 由click处理
+                        isTouchDragging = false;
+                    } else {
+                        isTouchDragging = false;
+                    }
+
+                    setTimeout(() => { isTouchDragging = false; }, 100);
+                });
+
+                thumb.addEventListener('touchcancel', () => {
+                    if (longPressTimer) clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                    cleanupTouchDrag();
+                    isTouchDragging = false;
+                });
+            }
+
+            function cleanupTouchDrag() {
+                if (touchCloneEl && touchCloneEl.parentNode) {
+                    touchCloneEl.parentNode.removeChild(touchCloneEl);
+                }
+                touchCloneEl = null;
+                longPressActive = false;
+                document.querySelectorAll('.meal-row').forEach(mr => mr.classList.remove('drag-over'));
+                if (dragInfo && dragInfo.videoElement) {
+                    dragInfo.videoElement.classList.remove('dragging');
+                }
+                dragInfo = null;
+                touchCurrentTarget = null;
+                isTouchDragging = false;
+            }
+
+            async function handleDrop(e, targetDate, targetMeal, targetContainer) {
+                if (!dragInfo) return;
+                const { videoId, sourceDate, sourceMeal } = dragInfo;
+                const rect = targetContainer.getBoundingClientRect();
+                const mouseX = e.clientX;
+                await processDropAction(videoId, sourceDate, sourceMeal, targetDate, targetMeal, mouseX, targetContainer);
+            }
+
+            async function processDropAction(videoId, sourceDate, sourceMeal, targetDate, targetMeal, clientX,
+            targetContainer) {
+                const db = await openDB();
+                const record = await dbGet(db, videoId);
+                if (!record) return;
+
+                const existingVideos = await dbGetByDateMeal(db, targetDate, targetMeal);
+                const filteredVideos = existingVideos.filter(v => v.id !== videoId);
+                const thumbEls = targetContainer.querySelectorAll('.video-thumb');
+                let insertIndex = filteredVideos.length;
+                for (let i = 0; i < thumbEls.length; i++) {
+                    const thumbRect = thumbEls[i].getBoundingClientRect();
+                    if (clientX < thumbRect.left + thumbRect.width / 2) {
+                        insertIndex = i;
+                        break;
+                    }
+                }
+
+                record.date = targetDate;
+                record.mealType = targetMeal;
+                record.order = insertIndex;
+                const allTargetVideos = [...filteredVideos];
+                allTargetVideos.splice(insertIndex, 0, record);
+                for (let i = 0; i < allTargetVideos.length; i++) {
+                    allTargetVideos[i].order = i;
+                }
+
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                for (const v of allTargetVideos) store.put(v);
+                await new Promise((resolve) => { tx.oncomplete = resolve; });
+
+                if (sourceDate !== targetDate || sourceMeal !== targetMeal) {
+                    const sourceVideos = await dbGetByDateMeal(db, sourceDate, sourceMeal);
+                    const remaining = sourceVideos.filter(v => v.id !== videoId);
+                    for (let i = 0; i < remaining.length; i++) remaining[i].order = i;
+                    const tx2 = db.transaction(STORE_NAME, 'readwrite');
+                    const store2 = tx2.objectStore(STORE_NAME);
+                    for (const v of remaining) store2.put(v);
+                    await new Promise((resolve) => { tx2.oncomplete = resolve; });
+                }
+
+                showToast(sourceDate === targetDate && sourceMeal === targetMeal ? '排序已更新' :
+                    `已移动到 ${targetDate} ${MEAL_LABELS[targetMeal]}餐`);
+                await renderCalendar();
+            }
+
+            // ==================== 视频播放弹窗 ====================
+            function openPlayerModal(record) {
+                const modal = document.getElementById('playerModal');
+                const title = document.getElementById('playerTitle');
+                const body = document.getElementById('playerBody');
+                const mealLabel = MEAL_LABELS[record.mealType] || '';
+                title.textContent = `${record.date} ${mealLabel}餐 - ${record.type === 'douyin' ? '抖音视频' : '本地视频'}`;
+                body.innerHTML = '';
+
+                if (record.type === 'douyin' && record.douyinUrl) {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'douyin-message';
+                    messageDiv.innerHTML = '<span class="icon-big">🎵</span><p style="font-weight:700;margin-bottom:6px;">抖音视频</p><p style="font-size:0.85rem;color:var(--text-secondary);">由于平台限制，无法直接播放<br>请使用下方按钮打开</p>';
+
+                    const linkDisplay = document.createElement('div');
+                    linkDisplay.className = 'douyin-link-display';
+                    linkDisplay.textContent = record.douyinUrl;
+
+                    const openBtn = document.createElement('a');
+                    openBtn.className = 'btn-open-douyin';
+                    openBtn.textContent = '📱 在抖音中打开';
+                    openBtn.href = record.douyinUrl;
+                    openBtn.target = '_blank';
+                    openBtn.rel = 'noopener noreferrer';
+
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'btn-copy';
+                    copyBtn.textContent = '📋 复制链接';
+                    copyBtn.addEventListener('click', () => {
+                        navigator.clipboard.writeText(record.douyinUrl).then(() => {
+                            showToast('链接已复制');
+                        }).catch(() => {
+                            showToast('复制失败，请手动复制');
+                        });
+                    });
+
+                    body.appendChild(messageDiv);
+                    body.appendChild(linkDisplay);
+                    body.appendChild(openBtn);
+                    body.appendChild(copyBtn);
+                } else if (record.videoBlob) {
+                    const video = document.createElement('video');
+                    video.controls = true;
+                    video.autoplay = true;
+                    video.playsInline = true;
+                    video.style.maxHeight = '50vh';
+                    video.style.width = '100%';
+                    video.style.borderRadius = '8px';
+                    video.style.background = '#000';
+                    const blobURL = URL.createObjectURL(record.videoBlob);
+                    video.src = blobURL;
+                    video.addEventListener('ended', () => URL.revokeObjectURL(blobURL));
+                    body.appendChild(video);
+                } else {
+                    body.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">视频数据不可用</p>';
+                }
+
+                if (record.note) {
+                    const noteDisplay = document.createElement('div');
+                    noteDisplay.style.cssText =
+                        'margin-top:12px;padding:10px 14px;background:#fffdf0;border-radius:8px;font-size:0.85rem;color:#8a6d14;';
+                    noteDisplay.textContent = '📝 ' + record.note;
+                    body.appendChild(noteDisplay);
+                }
+
+                const noteInput = document.createElement('input');
+                noteInput.className = 'note-input';
+                noteInput.type = 'text';
+                noteInput.placeholder = '添加备注...';
+                noteInput.value = record.note || '';
+                noteInput.addEventListener('change', async () => {
+                    const db = await openDB();
+                    const fresh = await dbGet(db, record.id);
+                    if (fresh) {
+                        fresh.note = noteInput.value.trim();
+                        await dbPut(db, fresh);
+                        showToast('备注已更新');
+                        await renderCalendar();
+                    }
+                });
+                body.appendChild(noteInput);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn-danger';
+                deleteBtn.textContent = '🗑️ 删除此视频';
+                deleteBtn.addEventListener('click', async () => {
+                    if (confirm('确定要删除这个视频吗？')) {
+                        const db = await openDB();
+                        revokeThumbnailURL(record.id);
+                        await dbDelete(db, record.id);
+                        showToast('视频已删除');
+                        modal.style.display = 'none';
+                        await renderCalendar();
+                    }
+                });
+                body.appendChild(deleteBtn);
+
+                modal.style.display = 'flex';
+            }
+
+            function closePlayerModal() {
+                document.getElementById('playerModal').style.display = 'none';
+                const body = document.getElementById('playerBody');
+                const video = body.querySelector('video');
+                if (video && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
+                body.innerHTML = '';
+            }
+
+            // ==================== 上传弹窗 ====================
+            function openUploadModal(dateStr, meal) {
+                const modal = document.getElementById('uploadModal');
+                const title = document.getElementById('uploadTitle');
+                const body = document.getElementById('uploadBody');
+                title.textContent = `添加视频 - ${dateStr} ${MEAL_LABELS[meal]}餐`;
+                body.innerHTML = '';
+
+                const options = document.createElement('div');
+                options.className = 'upload-options';
+
+                const localOption = document.createElement('div');
+                localOption.className = 'upload-option';
+                localOption.innerHTML =
+                    '<span class="icon-big">📁</span><p>上传本地视频</p><span>支持 MP4、MOV 等</span>';
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = 'video/*';
+                fileInput.multiple = true;
+                fileInput.style.display = 'none';
+                localOption.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', async (e) => {
+                    if (e.target.files.length > 0) {
+                        await handleLocalUpload(dateStr, meal, e.target.files);
+                        modal.style.display = 'none';
+                        await renderCalendar();
+                    }
+                });
+                options.appendChild(localOption);
+
+                const douyinOption = document.createElement('div');
+                douyinOption.className = 'upload-option';
+                douyinOption.innerHTML =
+                    '<span class="icon-big">🎵</span><p>粘贴抖音分享内容</p><span>支持链接或分享文本</span>';
+                douyinOption.addEventListener('click', () => {
+                    body.innerHTML = '';
+                    const section = document.createElement('div');
+                    section.innerHTML =
+                        '<p style="font-weight:600;margin-bottom:8px;font-size:0.85rem;">粘贴抖音分享内容：</p>';
+                    const textarea = document.createElement('textarea');
+                    textarea.className = 'douyin-url-input';
+                    textarea.rows = 4;
+                    textarea.placeholder = '例如：https://v.douyin.com/xxxxx/\n或完整分享文本';
+                    textarea.style.fontFamily = 'inherit';
+                    textarea.style.fontSize = '0.85rem';
+
+                    const btnRow = document.createElement('div');
+                    btnRow.style.cssText = 'margin-top:10px;display:flex;flex-direction:column;gap:8px;';
+                    const confirmBtn = document.createElement('button');
+                    confirmBtn.className = 'btn-primary';
+                    confirmBtn.textContent = '✅ 确认添加';
+                    confirmBtn.addEventListener('click', async () => {
+                        const rawInput = textarea.value.trim();
+                        if (!rawInput) { showToast('请输入抖音链接'); return; }
+                        const url = parseDouyinShareText(rawInput);
+                        if (!url.includes('douyin.com')) {
+                            showToast('未检测到有效的抖音链接');
+                            return;
+                        }
+                        await handleDouyinUpload(dateStr, meal, url);
+                        modal.style.display = 'none';
+                        await renderCalendar();
+                    });
+                    const backBtn = document.createElement('button');
+                    backBtn.className = 'btn-secondary';
+                    backBtn.textContent = '返回';
+                    backBtn.addEventListener('click', () => openUploadModal(dateStr, meal));
+                    btnRow.appendChild(confirmBtn);
+                    btnRow.appendChild(backBtn);
+                    section.appendChild(textarea);
+                    section.appendChild(btnRow);
+                    body.appendChild(section);
+                });
+                options.appendChild(douyinOption);
+                body.appendChild(options);
+                modal.style.display = 'flex';
+            }
+
+            async function handleLocalUpload(dateStr, meal, files) {
+                const db = await openDB();
+                const existingVideos = await dbGetByDateMeal(db, dateStr, meal);
+                let nextOrder = existingVideos.length;
+                let successCount = 0;
+
+                for (const file of files) {
+                    try {
+                        if (file.size > 200 * 1024 * 1024) {
+                            showToast(`文件 ${file.name} 超过200MB，已跳过`);
+                            continue;
+                        }
+                        let thumbnailBlob = null;
+                        try {
+                            thumbnailBlob = await generateThumbnail(file);
+                        } catch (e) { /* 忽略 */ }
+
+                        const record = {
+                            id: generateId(),
+                            date: dateStr,
+                            mealType: meal,
+                            order: nextOrder,
+                            type: 'local',
+                            videoBlob: file,
+                            thumbnailBlob: thumbnailBlob,
+                            douyinUrl: null,
+                            note: '',
+                            createdAt: Date.now(),
+                            fileName: file.name,
+                        };
+                        await dbAdd(db, record);
+                        nextOrder++;
+                        successCount++;
+                    } catch (err) {
+                        showToast(`上传失败: ${err.message}`);
+                    }
+                }
+                if (successCount > 0) showToast(`成功添加 ${successCount} 个视频`);
+            }
+
+            async function handleDouyinUpload(dateStr, meal, url) {
+                const db = await openDB();
+                const existingVideos = await dbGetByDateMeal(db, dateStr, meal);
+                const record = {
+                    id: generateId(),
+                    date: dateStr,
+                    mealType: meal,
+                    order: existingVideos.length,
+                    type: 'douyin',
+                    videoBlob: null,
+                    thumbnailBlob: null,
+                    douyinUrl: url,
+                    note: '',
+                    createdAt: Date.now(),
+                    fileName: null,
+                };
+                await dbAdd(db, record);
+                showToast('抖音链接已保存！');
+            }
+
+            function generateThumbnail(videoBlob) {
+                return new Promise((resolve) => {
+                    const video = document.createElement('video');
+                    const url = URL.createObjectURL(videoBlob);
+                    video.src = url;
+                    video.muted = true;
+                    video.playsInline = true;
+                    video.preload = 'metadata';
+                    video.onloadeddata = () => { video.currentTime = Math.min(1, video.duration * 0.2 || 0.5); };
+                    video.onseeked = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = THUMBNAIL_SIZE;
+                        canvas.height = THUMBNAIL_SIZE;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(video, 0, 0, THUMBNAIL_SIZE, THUMBNAIL_SIZE);
+                        canvas.toBlob((blob) => { URL.revokeObjectURL(url);
+                            resolve(blob); }, 'image/jpeg', 0.7);
+                    };
+                    video.onerror = () => { URL.revokeObjectURL(url);
+                        resolve(null); };
+                    setTimeout(() => { if (video.readyState < 2) { URL.revokeObjectURL(url);
+                            resolve(null); } }, 6000);
+                });
+            }
+
+            function closeUploadModal() {
+                document.getElementById('uploadModal').style.display = 'none';
+            }
+
+            // ==================== 备注弹窗 ====================
+            async function openNoteModal(dateStr, meal) {
+                const db = await openDB();
+                const videos = await dbGetByDateMeal(db, dateStr, meal);
+                const notes = videos.filter(v => v.note && v.note.trim()).map(v => v.note);
+                const currentNote = notes.length > 0 ? notes.join(' | ') : '';
+                const newNote = prompt(`设置 ${dateStr} ${MEAL_LABELS[meal]}餐备注：`, currentNote);
+                if (newNote === null) return;
+                if (videos.length > 0) {
+                    videos[0].note = newNote.trim();
+                    await dbPut(db, videos[0]);
+                } else {
+                    showToast('请先添加视频再设置备注');
+                    return;
+                }
+                showToast('备注已更新');
+                await renderCalendar();
+            }
+
+            // ==================== 事件绑定 ====================
+            document.getElementById('btnClosePlayer').addEventListener('click', closePlayerModal);
+            document.getElementById('playerModal').addEventListener('click', function(e) {
+                if (e.target === this) closePlayerModal();
+            });
+            document.getElementById('btnCloseUpload').addEventListener('click', closeUploadModal);
+            document.getElementById('uploadModal').addEventListener('click', function(e) {
+                if (e.target === this) closeUploadModal();
+            });
+            document.getElementById('btnPrevMonth').addEventListener('click', () => {
+                if (currentMonth === 0) { currentMonth = 11;
+                    currentYear--; } else { currentMonth--; }
+                selectedDate = null;
+                renderCalendar();
+            });
+            document.getElementById('btnNextMonth').addEventListener('click', () => {
+                if (currentMonth === 11) { currentMonth = 0;
+                    currentYear++; } else { currentMonth++; }
+                selectedDate = null;
+                renderCalendar();
+            });
+            document.getElementById('btnToday').addEventListener('click', () => {
+                currentYear = today.getFullYear();
+                currentMonth = today.getMonth();
+                selectedDate = todayStr;
+                renderCalendar();
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') { closePlayerModal();
+                    closeUploadModal(); }
+            });
+
+            // 全局清理
+            document.addEventListener('touchend', (e) => {
+                if (longPressActive && !e.target.closest('.video-thumb')) {
+                    cleanupTouchDrag();
+                }
+            });
+            document.addEventListener('touchcancel', () => {
+                cleanupTouchDrag();
+            });
+            document.addEventListener('dragover', (e) => {
+                if (dragInfo) e.preventDefault();
+            });
+
+            // ==================== 初始化 ====================
+            function init() {
+                currentYear = today.getFullYear();
+                currentMonth = today.getMonth();
+                selectedDate = todayStr;
+                renderCalendar();
+                console.log('🍽️ 三餐日历已就绪 - 移动端优化版');
+            }
+            init();
+        })();
+    </script>
+</body>
+</html>
