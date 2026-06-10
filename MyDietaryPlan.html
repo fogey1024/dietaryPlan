@@ -155,6 +155,21 @@
             box-shadow: var(--shadow);
             overflow: hidden;
         }
+        .calendar-scroll {
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        .calendar-scroll::-webkit-scrollbar {
+            height: 4px;
+        }
+        .calendar-scroll::-webkit-scrollbar-thumb {
+            background: #d0d5db;
+            border-radius: 999px;
+        }
+        .calendar-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
         .weekdays {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -740,6 +755,92 @@
             }
         }
 
+        /* ========== 手机端优化 ========== */
+        @media (max-width: 767px) {
+            .app-header {
+                padding: 10px 10px;
+                gap: 6px;
+            }
+            .app-logo {
+                gap: 6px;
+                font-size: 0.95rem;
+                min-width: 0;
+                flex: 0 1 auto;
+            }
+            .app-logo .icon {
+                width: 28px;
+                height: 28px;
+                font-size: 1rem;
+                border-radius: 7px;
+            }
+            .app-logo span {
+                max-width: 4.2em;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .month-nav {
+                flex: 1 1 auto;
+                gap: 2px;
+                min-width: 0;
+            }
+            .month-nav button {
+                width: 28px;
+                height: 28px;
+                font-size: 0.8rem;
+                border-width: 1px;
+            }
+            .month-nav .current-month {
+                min-width: 0;
+                flex: 1;
+                font-size: 0.82rem;
+                padding: 0 4px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .btn-today {
+                padding: 6px 8px;
+                font-size: 0.75rem;
+                border-radius: 14px;
+                letter-spacing: 0;
+            }
+            .calendar-container {
+                padding: 0 8px;
+            }
+            .calendar-scroll {
+                padding-bottom: 6px;
+            }
+            .weekdays,
+            .calendar-grid {
+                min-width: 700px;
+            }
+            .day-cell {
+                min-height: 118px;
+                padding: 4px 4px 6px;
+            }
+            .meal-row {
+                min-height: 28px;
+                gap: 3px;
+                padding: 2px 3px;
+            }
+            .meal-label {
+                width: 16px;
+                font-size: 0.6rem;
+            }
+            .meal-videos {
+                gap: 3px;
+            }
+            .video-thumb {
+                width: 26px;
+                height: 26px;
+            }
+            .btn-add-video {
+                width: 24px;
+                height: 24px;
+                font-size: 0.85rem;
+            }
+        }
+
         /* ========== 横屏平板适配 ========== */
         @media (min-width: 768px) {
             .calendar-container {
@@ -830,11 +931,13 @@
     <!-- ========== 日历主体 ========== -->
     <div class="calendar-container">
         <div class="calendar-card">
-            <div class="weekdays" id="weekdaysRow">
-                <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span>
-                <span class="weekend">六</span><span class="weekend">日</span>
+            <div class="calendar-scroll">
+                <div class="weekdays" id="weekdaysRow">
+                    <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span>
+                    <span class="weekend">六</span><span class="weekend">日</span>
+                </div>
+                <div class="calendar-grid" id="calendarGrid"></div>
             </div>
-            <div class="calendar-grid" id="calendarGrid"></div>
         </div>
     </div>
 
