@@ -91,7 +91,7 @@
         .month-nav {
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 2px;
             flex: 1;
             justify-content: center;
             min-width: 0;
@@ -119,10 +119,11 @@
             font-weight: 700;
             font-size: 0.9rem;
             text-align: center;
-            letter-spacing: 0.2px;
+            letter-spacing: 0;
             color: var(--text);
             white-space: nowrap;
-            min-width: 90px;
+            min-width: 0;
+            padding: 0 2px;
         }
         .btn-today {
             padding: 6px 12px;
@@ -781,7 +782,7 @@
             }
             .month-nav {
                 flex: 1 1 auto;
-                gap: 2px;
+                gap: 1px;
                 min-width: 0;
             }
             .month-nav button {
@@ -792,9 +793,9 @@
             }
             .month-nav .current-month {
                 min-width: 0;
-                flex: 1;
+                flex: 0 1 auto;
                 font-size: 0.82rem;
-                padding: 0 4px;
+                padding: 0 2px;
                 overflow: hidden;
                 text-overflow: ellipsis;
             }
